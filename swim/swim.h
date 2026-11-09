@@ -38,7 +38,7 @@ typedef enum {
 struct swim_enter_options {
     // Do not hold NRST low during entry; the running firmware keeps running.
     bool hot_attach;
-    // First low pulse of the entry sequence, 0 = default (16 us). Max 10 ms.
+    // First low pulse of the entry sequence, 0 = default (1 ms). Max 10 ms.
     uint32_t entry_low_us;
     // Longest accepted rise time of the released line, 0 = default (250 ns).
     uint32_t max_rise_ns;

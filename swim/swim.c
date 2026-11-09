@@ -51,9 +51,12 @@
 // swim.pio runs two PIO cycles per SWIM clock.
 #define SWIM_PIO_CYCLES_PER_CLOCK 2
 
-// Entry sequence (UM0470 3.2): 16 us low, four 1 kHz pulses, four 2 kHz pulses,
-// ending with the line released.
-#define SWIM_ENTRY_LOW_US 16
+// Entry sequence (UM0470 3.2): a first low pulse, four 1 kHz pulses, four 2 kHz
+// pulses, ending with the line released. UM0470 says 16 us for the first pulse,
+// but the entry detector runs off the LSI, which is ~38 kHz on the STM8L: on an
+// STM8L151G after power-up, 16 us entered 12 times out of 20, 100 us and 1 ms
+// 20 out of 20. 1 ms is also what ST-Link-compatible probes send.
+#define SWIM_ENTRY_LOW_US 1000
 // Upper bound for a caller-supplied first pulse, to keep entry bounded.
 #define SWIM_ENTRY_LOW_MAX_US 10000
 #define SWIM_ENTRY_SLOW_HALF_US 500
@@ -545,7 +548,7 @@ static swim_status_t comm_reset(void)
 {
     sm_restart();
     if (!wait_line(true, SWIM_IDLE_TIMEOUT_US)) {
-        return fail(SWIM_ERR_LINE_LOW, "SWIM: line held low (target off?)");
+        return fail(SWIM_ERR_LINE_LOW, "SWIM: line held low (no power, or pin in use)");
     }
     line_drive_low();
     busy_wait_us_32(SWIM_COMM_RESET_US);
@@ -581,7 +584,7 @@ static swim_status_t release_checking_pullup(uint32_t max_rise_ns, uint32_t *ris
 static swim_status_t entry_sequence(uint32_t entry_low_us, uint32_t max_rise_ns, uint32_t *rise_ns)
 {
     if (!wait_line(true, SWIM_IDLE_TIMEOUT_US)) {
-        return fail(SWIM_ERR_LINE_LOW, "SWIM: line held low (target off?)");
+        return fail(SWIM_ERR_LINE_LOW, "SWIM: line held low (no power, or pin in use)");
     }
 
     line_drive_low();

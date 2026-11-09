@@ -135,7 +135,8 @@ typedef struct _CommandSWIM {
  during entry. Fails if the application has turned SWIM into a GPIO. */
     bool hot_attach;
     /* SWIM_ENTER tuning, 0 = firmware default. Length of the first low pulse
- of the entry sequence (default 16 us, as in UM0470). */
+ of the entry sequence (default 1000 us; UM0470 says 16 us, which the
+ STM8L's slow LSI misses about 40 % of the time). */
     uint32_t entry_low_us;
     /* SWIM_ENTER tuning, 0 = firmware default. Longest accepted rise time of
  the released line before giving up on a missing pull-up (default
