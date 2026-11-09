@@ -650,11 +650,14 @@ swim_status_t swim_enter(bool hot_attach, uint32_t *sync_ns)
     start_operation();
     swim.active = false;
 
+    // Save the pins before pio_setup() reconfigures SWIM_IO, so that leaving
+    // SWIM puts them back the way they were found.
+    take_pins();
     swim_status_t status = pio_setup();
     if (status != SWIM_OK) {
+        release_pins();
         return status;
     }
-    take_pins();
 
     // Holding NRST low during entry gets in even if the application turns the
     // SWIM pin into a GPIO right after reset (UM0470 3.2).
