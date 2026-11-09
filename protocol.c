@@ -106,6 +106,7 @@ void protocol_ok() {
 size_t protocol_hello_(pb_ostream_t *stream) {
     ResponseHello hello = ResponseHello_init_zero;
     hello.version = FaultierVersion_FAULTIER_VERSION;
+    hello.supports_swim = true;
     Response response = Response_init_zero;
     response.which_type = Response_hello_tag;
     response.type.hello = hello;
@@ -152,4 +153,31 @@ pb_ostream_t sizestream = {0};
     write_header(protocol_swd_check_(&sizestream, success));
     pb_ostream_t stdoutstream = {&callback, NULL, SIZE_MAX, 0};
     protocol_swd_check_(&stdoutstream, success);
+}
+
+size_t protocol_swim_(pb_ostream_t *stream, const uint8_t *data, size_t data_size, uint32_t sync_ns) {
+    ResponseSWIM swim = ResponseSWIM_init_zero;
+    swim.sync_ns = sync_ns;
+    // Same bytes-callback encoder as the ADC samples.
+    struct encode_adc_data d = {
+        .adc_buffer = (uint8_t *)data,
+        .adc_buffer_size = data_size
+    };
+    if (data_size > 0) {
+        swim.data.funcs.encode = &encode_adc;
+        swim.data.arg = &d;
+    }
+
+    Response resp = Response_init_zero;
+    resp.which_type = Response_swim_tag;
+    resp.type.swim = swim;
+    pb_encode(stream, Response_fields, &resp);
+    return stream->bytes_written;
+}
+
+void protocol_swim(const uint8_t *data, size_t data_size, uint32_t sync_ns) {
+    pb_ostream_t sizestream = {0};
+    write_header(protocol_swim_(&sizestream, data, data_size, sync_ns));
+    pb_ostream_t stdoutstream = {&callback, NULL, SIZE_MAX, 0};
+    protocol_swim_(&stdoutstream, data, data_size, sync_ns);
 }

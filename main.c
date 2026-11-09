@@ -28,6 +28,8 @@
 #include "swd/tamarin_probe.h"
 #include "swd/swdchecker.h"
 
+#include "swim/swim.h"
+
 // I think this comes from TinyUSB
 void board_init(void);
 
@@ -537,6 +539,50 @@ void uart_task(void) {
     }
 }
 
+static uint8_t swim_read_buffer[SWIM_MAX_READ];
+
+static void handle_swim(const CommandSWIM *cmd)
+{
+    swim_status_t status;
+    uint32_t sync_ns = 0;
+
+    switch (cmd->function) {
+        case SWIMFunction_SWIM_ENTER:
+            status = swim_enter(cmd->hot_attach, &sync_ns);
+            if (status == SWIM_OK) {
+                protocol_swim(NULL, 0, sync_ns);
+                return;
+            }
+            break;
+        case SWIMFunction_SWIM_EXIT:
+            status = swim_exit();
+            break;
+        case SWIMFunction_SWIM_SRST:
+            status = swim_srst();
+            break;
+        case SWIMFunction_SWIM_READ:
+            // swim_read() rejects lengths above SWIM_MAX_READ before touching the buffer.
+            status = swim_read(cmd->address, swim_read_buffer, cmd->length);
+            if (status == SWIM_OK) {
+                protocol_swim(swim_read_buffer, cmd->length, 0);
+                return;
+            }
+            break;
+        case SWIMFunction_SWIM_WRITE:
+            status = swim_write(cmd->address, cmd->data.bytes, cmd->data.size);
+            break;
+        default:
+            protocol_error("SWIM: unknown function");
+            return;
+    }
+
+    if (status == SWIM_OK) {
+        protocol_ok();
+    } else {
+        protocol_error((char *)swim_error_message());
+    }
+}
+
 int main()
 {
     // Overclock to 250MHz
@@ -686,6 +732,10 @@ int main()
             case Command_capture_tag:
                 break;
             case Command_glitch_tag:
+                // The glitcher only uses PIO0, so an active SWIM session (PIO1/SM1,
+                // GP13 and GP17) is left alone and its line stays released. If the
+                // glitch or power cycle resets the target, SWIM is gone on the
+                // target side: the next SWIM command fails and swim_enter() is needed.
                 pio_clear_instruction_memory(pio0);
                 setup_simple_glitcher();
 
@@ -868,6 +918,9 @@ int main()
                 }
             }
             break;
+            case Command_swim_tag:
+                handle_swim(&command.cmd.swim);
+                break;
             default:
                 cls(false);
                 pprintf("Invalid command!\n");
