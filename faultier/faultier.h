@@ -34,6 +34,10 @@
 #define SWD_IO 16
 #define SWD_RST 17
 
+// STM8 SWIM: data on header pin IO8, NRST shared with the SWD header's RST.
+#define SWIM_IO (PIN_IO_BASE + 8)
+#define SWIM_RST SWD_RST
+
 #define PIO_IRQ_TRIGGERED 0
 #define PIO_IRQ_GLITCHED 1
 

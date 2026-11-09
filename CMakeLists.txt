@@ -19,6 +19,7 @@ pico_generate_pio_header(faultier ${CMAKE_CURRENT_LIST_DIR}/faultier/pio/i2c.pio
 pico_generate_pio_header(faultier ${CMAKE_CURRENT_LIST_DIR}/faultier/pio/uart_rx.pio)
 pico_generate_pio_header(faultier ${CMAKE_CURRENT_LIST_DIR}/faultier/pio/uart_tx.pio)
 pico_generate_pio_header(faultier ${CMAKE_CURRENT_LIST_DIR}/swd/probe.pio)
+pico_generate_pio_header(faultier ${CMAKE_CURRENT_LIST_DIR}/swim/swim.pio)
 
 target_sources(faultier PRIVATE
         main.c
@@ -57,6 +58,8 @@ target_sources(faultier PRIVATE
 
         swd/tamarin_probe.c
         swd/swdchecker.c
+
+        swim/swim.c
         )
 
 # Required so the build finds tusb_config.h

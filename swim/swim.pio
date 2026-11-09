@@ -1,0 +1,43 @@
+;
+; STM8 SWIM bit engine (UM0470, low-speed bit format).
+;
+; One PIO cycle is one SWIM clock: nominally 125 ns (HSI/2 = 8 MHz). swim.c
+; calibrates the clock divider from the target's synchronisation frame.
+;
+; SWIM is open drain. The pin's output latch is held at 0 and the program only
+; ever changes the pin direction: 1 drives the line low, 0 releases it to the
+; external pull-up. Every bit starts with a falling edge; a '1' is 2 clocks low
+; and 20 high, a '0' is 20 clocks low and 2 high.
+;
+; Each TX FIFO word is one command, MSB first:
+;   bit  31     0 = transmit, 1 = receive
+;   bits 30..26 number of bits - 1
+;   bits 25..   transmit only: the bits to send, MSB first, INVERTED
+;               (an inverted 1 is a '0' on the wire: the line stays low)
+; A receive command pushes one RX FIFO word with the received bits in its low
+; bits, the first bit received in the most significant of them.
+;
+; Waits for the target are unbounded here; swim.c times out on the FIFO and
+; restarts the state machine.
+
+.program swim
+
+.wrap_target
+public cmd:
+    pull block                  ; next command
+    out y, 1                    ; direction
+    out x, 5                    ; bit count - 1
+    jmp !y tx_bit
+rx_bit:
+    wait 0 pin 0        [9]     ; falling edge starts the bit; sample 10-11 clocks in
+    in pins, 1                  ; '1' is high again by now, '0' is still low
+    wait 1 pin 0                ; end of the low phase
+    jmp x-- rx_bit
+    push block
+    jmp cmd
+tx_bit:
+    set pindirs, 1      [1]     ; 2 clocks low
+    out pindirs, 1      [17]    ; 18 clocks: low for '0', released for '1'
+    set pindirs, 0              ; released for the last 2 clocks
+    jmp x-- tx_bit
+.wrap
