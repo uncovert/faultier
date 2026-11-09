@@ -1,21 +1,33 @@
 ;
 ; STM8 SWIM bit engine (UM0470, low-speed bit format).
 ;
-; One PIO cycle is one SWIM clock: nominally 125 ns (HSI/2 = 8 MHz). swim.c
-; calibrates the clock divider from the target's synchronisation frame.
+; One PIO cycle is half a SWIM clock: nominally 62.5 ns, the SWIM clock being
+; HSI/2 = 8 MHz. swim.c calibrates the divider from the target's
+; synchronisation frame.
 ;
 ; SWIM is open drain. The pin's output latch is held at 0 and the program only
 ; ever changes the pin direction: 1 drives the line low, 0 releases it to the
-; external pull-up. Every bit starts with a falling edge; a '1' is 2 clocks low
-; and 20 high, a '0' is 20 clocks low and 2 high.
+; external pull-up. Every bit starts with a falling edge and lasts 22 SWIM
+; clocks: a '1' is 2 clocks low, a '0' is 20 clocks low.
 ;
 ; Each TX FIFO word is one command, MSB first:
-;   bit  31     0 = transmit, 1 = receive
-;   bits 30..26 number of bits - 1
-;   bits 25..   transmit only: the bits to send, MSB first, INVERTED
-;               (an inverted 1 is a '0' on the wire: the line stays low)
-; A receive command pushes one RX FIFO word with the received bits in its low
-; bits, the first bit received in the most significant of them.
+;   bits 31..27  bits to send - 1
+;   bits 26..22  bits to receive - 1
+;   bits 21..17  entry address: tx_start, or rx_bit to only receive
+;   then, when sending:
+;     n bits     the bits to send, MSB first, INVERTED (1 = '0' = long low)
+;     5 bits     address to continue at: rx_bit to receive the answer, or cmd
+; Addresses are absolute (program offset added). A command that receives
+; pushes one RX FIFO word with the received bits in its low bits, the first
+; bit received in the most significant of them.
+;
+; Turnaround, both ways:
+; - Sending falls straight through to receiving, listening 1 clock after the
+;   last bit's low phase, so an answer that starts right at the end of that bit
+;   (the target's ACK) is not missed.
+; - Sending only starts after 14 clocks of released line counted from when the
+;   command is picked up, so the host never starts a bit (an ACK to a data byte,
+;   or the next frame) before the target's last bit period has ended.
 ;
 ; Waits for the target are unbounded here; swim.c times out on the FIFO and
 ; restarts the state machine.
@@ -24,20 +36,23 @@
 
 .wrap_target
 public cmd:
-    pull block                  ; next command
-    out y, 1                    ; direction
-    out x, 5                    ; bit count - 1
-    jmp !y tx_bit
-rx_bit:
-    wait 0 pin 0        [9]     ; falling edge starts the bit; sample 10-11 clocks in
+    pull block
+    out x, 5                    ; bits to send - 1
+    out y, 5                    ; bits to receive - 1
+    out pc, 5                   ; tx_start or rx_bit
+public tx_start:
+    nop                 [23]    ; turnaround guard (12 clocks, +2 below)
+tx_bit:
+    set pindirs, 0      [3]     ; 2 clocks high: end of the previous bit
+    set pindirs, 1      [3]     ; 2 clocks low: every bit starts low
+    out pindirs, 1      [31]    ; 18 clocks (with the jmp): still low for '0',
+    jmp x-- tx_bit      [3]     ;   released for '1'
+    set pindirs, 0              ; last bit: release now ...
+    out pc, 5                   ; ... and go on to rx_bit or cmd
+public rx_bit:
+    wait 0 pin 0        [20]    ; falling edge starts a bit; sample ~11 clocks in
     in pins, 1                  ; '1' is high again by now, '0' is still low
     wait 1 pin 0                ; end of the low phase
-    jmp x-- rx_bit
+    jmp y-- rx_bit
     push block
-    jmp cmd
-tx_bit:
-    set pindirs, 1      [1]     ; 2 clocks low
-    out pindirs, 1      [17]    ; 18 clocks: low for '0', released for '1'
-    set pindirs, 0              ; released for the last 2 clocks
-    jmp x-- tx_bit
 .wrap

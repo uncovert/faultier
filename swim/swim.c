@@ -48,6 +48,8 @@
 // The synchronisation frame is 128 SWIM clocks low.
 #define SWIM_SYNC_CLOCKS 128
 #define SWIM_NOMINAL_CLOCK_HZ 8000000
+// swim.pio runs two PIO cycles per SWIM clock.
+#define SWIM_PIO_CYCLES_PER_CLOCK 2
 
 // Entry sequence (UM0470 3.2): 16 us low, four 1 kHz pulses, four 2 kHz pulses,
 // ending with the line released.
@@ -249,13 +251,14 @@ static void release_pins(void)
 
 // --- PIO -----------------------------------------------------------------------
 
-// One PIO cycle per SWIM clock, derived from a synchronisation frame of
-// `sync_cycles` clk_sys cycles (128 SWIM clocks).
+// Two PIO cycles per SWIM clock, derived from a synchronisation frame of
+// `sync_cycles` clk_sys cycles (128 SWIM clocks, so 256 PIO cycles).
 static void set_bit_clock(uint32_t sync_cycles)
 {
+    const uint32_t pio_cycles = SWIM_SYNC_CLOCKS * SWIM_PIO_CYCLES_PER_CLOCK;
     pio_sm_set_clkdiv_int_frac(SWIM_PIO, SWIM_SM,
-                               sync_cycles / SWIM_SYNC_CLOCKS,
-                               (sync_cycles % SWIM_SYNC_CLOCKS) * 256 / SWIM_SYNC_CLOCKS);
+                               sync_cycles / pio_cycles,
+                               (sync_cycles % pio_cycles) * 256 / pio_cycles);
 }
 
 static inline uint32_t nominal_sync_cycles(void)
@@ -344,23 +347,37 @@ static bool wait_pio_idle(void)
     return true;
 }
 
-// See swim.pio for the command word layout.
-static inline uint32_t tx_word(uint32_t bits, uint count)
+// Command word for swim.pio (layout described there): send the low `tx_count`
+// bits of `bits` MSB first, then receive `rx_count` bits. Either count may be 0,
+// not both. At most 12 bits can be sent.
+static inline uint32_t pio_command(uint32_t bits, uint tx_count, uint rx_count)
 {
-    uint32_t inverted = ~bits & ((1u << count) - 1);
-    return ((uint32_t)(count - 1) << 26) | (inverted << (26 - count));
+    uint entry = tx_count ? swim_offset_tx_start : swim_offset_rx_bit;
+    uint32_t word = ((uint32_t)(tx_count ? tx_count - 1 : 0) << 27)
+                  | ((uint32_t)(rx_count ? rx_count - 1 : 0) << 22)
+                  | ((uint32_t)(swim.offset + entry) << 17);
+    if (tx_count) {
+        uint next = rx_count ? swim_offset_rx_bit : swim_offset_cmd;
+        uint32_t inverted = ~bits & ((1u << tx_count) - 1);
+        word |= inverted << (17 - tx_count);
+        word |= (uint32_t)(swim.offset + next) << (12 - tx_count);
+    }
+    return word;
 }
 
-static inline uint32_t rx_word(uint count)
-{
-    return (1u << 31) | ((uint32_t)(count - 1) << 26);
-}
-
-// Host frame: header '0', payload MSB first, parity = XOR of the payload bits.
+// Host frame followed by the receiver's ACK: header '0', payload MSB first,
+// parity = XOR of the payload bits, then one bit back from the target.
 static inline uint32_t host_frame(uint32_t payload, uint bits)
 {
     payload &= (1u << bits) - 1;
-    return tx_word((payload << 1) | (__builtin_parity(payload) & 1), bits + 2);
+    return pio_command((payload << 1) | (__builtin_parity(payload) & 1), bits + 2, 1);
+}
+
+// The host's answer to a data frame from the target (1 = ACK, 0 = NACK),
+// optionally followed by receiving the next data frame.
+static inline uint32_t host_answer(bool ack, bool receive_next)
+{
+    return pio_command(ack ? 1 : 0, 1, receive_next ? SWIM_DATA_FRAME_BITS : 0);
 }
 
 static inline bool op_expired(void)
@@ -381,8 +398,8 @@ static swim_status_t send_frame(uint32_t payload, uint bits, bool data_follows)
     absolute_time_t give_up = make_timeout_time_us(SWIM_NACK_RETRY_US);
 
     while (true) {
-        if (!fifo_put(host_frame(payload, bits)) || !fifo_put(rx_word(1))
-            || (data_follows && !fifo_put(rx_word(SWIM_DATA_FRAME_BITS)))) {
+        if (!fifo_put(host_frame(payload, bits))
+            || (data_follows && !fifo_put(pio_command(0, 0, SWIM_DATA_FRAME_BITS)))) {
             sm_restart();
             return fail(SWIM_ERR_PIO, "SWIM: PIO did not take the frame");
         }
@@ -430,7 +447,8 @@ static swim_status_t rotf_data(uint32_t address, uint8_t *data, size_t count)
         if (header_ok && parity_ok) {
             data[i++] = (uint8_t)value;
             bad_frames = 0;
-            answer = tx_word(1, 1);     // ACK
+            // ACK, and listen for the next byte straight away.
+            answer = host_answer(true, i < count);
         } else {
             if (++bad_frames > SWIM_RX_MAX_RETRIES || op_expired()) {
                 // The target is left waiting for an answer; the caller's comm
@@ -438,11 +456,11 @@ static swim_status_t rotf_data(uint32_t address, uint8_t *data, size_t count)
                 return fail(SWIM_ERR_FRAME, "SWIM: bad %s from target at 0x%06lX",
                             header_ok ? "parity" : "header", (unsigned long)(address + i));
             }
-            answer = tx_word(0, 1);     // NACK: the same byte comes again
+            // NACK: the target sends the same byte again.
+            answer = host_answer(false, true);
         }
 
-        bool more = i < count;
-        if (!fifo_put(answer) || (more && !fifo_put(rx_word(SWIM_DATA_FRAME_BITS)))) {
+        if (!fifo_put(answer)) {
             sm_restart();
             return fail(SWIM_ERR_PIO, "SWIM: PIO did not take the frame");
         }
