@@ -1,1 +1,2 @@
 ResponseError.message max_size:50
+CommandSWIM.data max_size:128

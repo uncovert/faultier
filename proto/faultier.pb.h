@@ -71,6 +71,14 @@ typedef enum _TriggerPullConfiguration {
     TriggerPullConfiguration_TRIGGER_PULL_DOWN = 2
 } TriggerPullConfiguration;
 
+typedef enum _SWIMFunction {
+    SWIMFunction_SWIM_ENTER = 0,
+    SWIMFunction_SWIM_EXIT = 1,
+    SWIMFunction_SWIM_SRST = 2,
+    SWIMFunction_SWIM_READ = 3,
+    SWIMFunction_SWIM_WRITE = 4
+} SWIMFunction;
+
 /* Struct definitions */
 typedef struct _CaptureResponse {
     pb_callback_t data;
@@ -113,6 +121,21 @@ typedef struct _CommandReadADC {
     char dummy_field;
 } CommandReadADC;
 
+typedef PB_BYTES_ARRAY_T(128) CommandSWIM_data_t;
+/* STM8 SWIM (UM0470) debug access on IO8, with NRST on the SWD header's RST pin. */
+typedef struct _CommandSWIM {
+    SWIMFunction function;
+    /* SWIM_READ / SWIM_WRITE: 24-bit target address. */
+    uint32_t address;
+    /* SWIM_READ: number of bytes, 1 to 1024. */
+    uint32_t length;
+    /* SWIM_WRITE: the bytes to write, 1 to 128 (sent as a single WOTF). */
+    CommandSWIM_data_t data;
+    /* SWIM_ENTER: attach to a running target instead of holding NRST low
+ during entry. Fails if the application has turned SWIM into a GPIO. */
+    bool hot_attach;
+} CommandSWIM;
+
 typedef struct _Command {
     pb_size_t which_cmd;
     union {
@@ -123,6 +146,7 @@ typedef struct _Command {
         CommandReadADC read_adc;
         CommandSWDCheck swd_check;
         CommandConfigureADC configure_adc;
+        CommandSWIM swim;
     } cmd;
 } Command;
 
@@ -136,6 +160,9 @@ typedef struct _ResponseError {
 
 typedef struct _ResponseHello {
     FaultierVersion version;
+    /* Set by firmware that implements CommandSWIM. Older firmware leaves it
+ false (and silently drops CommandSWIM), so the host can refuse early. */
+    bool supports_swim;
 } ResponseHello;
 
 typedef struct _ResponseTriggerTimeout {
@@ -154,6 +181,14 @@ typedef struct _ResponseSWDCheck {
     bool enabled;
 } ResponseSWDCheck;
 
+typedef struct _ResponseSWIM {
+    /* SWIM_READ: the bytes read. */
+    pb_callback_t data;
+    /* SWIM_ENTER: measured length of the target's synchronisation frame
+ (128 SWIM clocks, nominally 16000 ns for an 8 MHz SWIM clock). */
+    uint32_t sync_ns;
+} ResponseSWIM;
+
 typedef struct _Response {
     pb_size_t which_type;
     union {
@@ -163,6 +198,7 @@ typedef struct _Response {
         ResponseADC adc;
         ResponseTriggerTimeout trigger_timeout;
         ResponseSWDCheck swd_check;
+        ResponseSWIM swim;
     } type;
 } Response;
 
@@ -208,6 +244,10 @@ extern "C" {
 #define _TriggerPullConfiguration_MAX TriggerPullConfiguration_TRIGGER_PULL_DOWN
 #define _TriggerPullConfiguration_ARRAYSIZE ((TriggerPullConfiguration)(TriggerPullConfiguration_TRIGGER_PULL_DOWN+1))
 
+#define _SWIMFunction_MIN SWIMFunction_SWIM_ENTER
+#define _SWIMFunction_MAX SWIMFunction_SWIM_WRITE
+#define _SWIMFunction_ARRAYSIZE ((SWIMFunction)(SWIMFunction_SWIM_WRITE+1))
+
 
 
 
@@ -223,10 +263,13 @@ extern "C" {
 #define CommandConfigureADC_source_ENUMTYPE ADCSource
 
 
+#define CommandSWIM_function_ENUMTYPE SWIMFunction
+
 
 
 
 #define ResponseHello_version_ENUMTYPE FaultierVersion
+
 
 
 
@@ -243,14 +286,16 @@ extern "C" {
 #define CommandConfigureGlitcher_init_default    {_TriggersType_MIN, 0, 0, _TriggerSource_MIN, _GlitchOutput_MIN, _TriggerPullConfiguration_MIN, _GlitchOutput_MIN, 0}
 #define CommandConfigureADC_init_default         {_ADCSource_MIN, 0, 0}
 #define CommandReadADC_init_default              {0}
+#define CommandSWIM_init_default                 {_SWIMFunction_MIN, 0, 0, {0, {0}}, 0}
 #define Command_init_default                     {0, {CommandHello_init_default}}
 #define ResponseOk_init_default                  {0}
 #define ResponseError_init_default               {""}
-#define ResponseHello_init_default               {_FaultierVersion_MIN}
+#define ResponseHello_init_default               {_FaultierVersion_MIN, 0}
 #define ResponseTriggerTimeout_init_default      {0}
 #define ResponseADC_init_default                 {{{NULL}, NULL}}
 #define ResponseInfo_init_default                {0}
 #define ResponseSWDCheck_init_default            {0}
+#define ResponseSWIM_init_default                {{{NULL}, NULL}, 0}
 #define Response_init_default                    {0, {ResponseOk_init_default}}
 #define CaptureResponse_init_zero                {{{NULL}, NULL}}
 #define CommandHello_init_zero                   {0}
@@ -260,14 +305,16 @@ extern "C" {
 #define CommandConfigureGlitcher_init_zero       {_TriggersType_MIN, 0, 0, _TriggerSource_MIN, _GlitchOutput_MIN, _TriggerPullConfiguration_MIN, _GlitchOutput_MIN, 0}
 #define CommandConfigureADC_init_zero            {_ADCSource_MIN, 0, 0}
 #define CommandReadADC_init_zero                 {0}
+#define CommandSWIM_init_zero                    {_SWIMFunction_MIN, 0, 0, {0, {0}}, 0}
 #define Command_init_zero                        {0, {CommandHello_init_zero}}
 #define ResponseOk_init_zero                     {0}
 #define ResponseError_init_zero                  {""}
-#define ResponseHello_init_zero                  {_FaultierVersion_MIN}
+#define ResponseHello_init_zero                  {_FaultierVersion_MIN, 0}
 #define ResponseTriggerTimeout_init_zero         {0}
 #define ResponseADC_init_zero                    {{{NULL}, NULL}}
 #define ResponseInfo_init_zero                   {0}
 #define ResponseSWDCheck_init_zero               {0}
+#define ResponseSWIM_init_zero                   {{{NULL}, NULL}, 0}
 #define Response_init_zero                       {0, {ResponseOk_init_zero}}
 
 /* Field tags (for use in manual encoding/decoding) */
@@ -284,6 +331,11 @@ extern "C" {
 #define CommandConfigureADC_source_tag           1
 #define CommandConfigureADC_sample_count_tag     2
 #define CommandConfigureADC_clock_division_tag   3
+#define CommandSWIM_function_tag                 1
+#define CommandSWIM_address_tag                  2
+#define CommandSWIM_length_tag                   3
+#define CommandSWIM_data_tag                     4
+#define CommandSWIM_hot_attach_tag               5
 #define Command_hello_tag                        1
 #define Command_configure_glitcher_tag           2
 #define Command_capture_tag                      4
@@ -291,17 +343,22 @@ extern "C" {
 #define Command_read_adc_tag                     6
 #define Command_swd_check_tag                    7
 #define Command_configure_adc_tag                8
+#define Command_swim_tag                         9
 #define ResponseError_message_tag                1
 #define ResponseHello_version_tag                1
+#define ResponseHello_supports_swim_tag          2
 #define ResponseADC_samples_tag                  1
 #define ResponseInfo_frequency_tag               1
 #define ResponseSWDCheck_enabled_tag             1
+#define ResponseSWIM_data_tag                    1
+#define ResponseSWIM_sync_ns_tag                 2
 #define Response_ok_tag                          1
 #define Response_error_tag                       2
 #define Response_hello_tag                       3
 #define Response_adc_tag                         4
 #define Response_trigger_timeout_tag             5
 #define Response_swd_check_tag                   6
+#define Response_swim_tag                        7
 
 /* Struct field encoding specification for nanopb */
 #define CaptureResponse_FIELDLIST(X, a) \
@@ -353,6 +410,15 @@ X(a, STATIC,   SINGULAR, INT32,    clock_division,    3)
 #define CommandReadADC_CALLBACK NULL
 #define CommandReadADC_DEFAULT NULL
 
+#define CommandSWIM_FIELDLIST(X, a) \
+X(a, STATIC,   SINGULAR, UENUM,    function,          1) \
+X(a, STATIC,   SINGULAR, UINT32,   address,           2) \
+X(a, STATIC,   SINGULAR, UINT32,   length,            3) \
+X(a, STATIC,   SINGULAR, BYTES,    data,              4) \
+X(a, STATIC,   SINGULAR, BOOL,     hot_attach,        5)
+#define CommandSWIM_CALLBACK NULL
+#define CommandSWIM_DEFAULT NULL
+
 #define Command_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,hello,cmd.hello),   1) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,configure_glitcher,cmd.configure_glitcher),   2) \
@@ -360,7 +426,8 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,capture,cmd.capture),   4) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,glitch,cmd.glitch),   5) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,read_adc,cmd.read_adc),   6) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,swd_check,cmd.swd_check),   7) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,configure_adc,cmd.configure_adc),   8)
+X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,configure_adc,cmd.configure_adc),   8) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,swim,cmd.swim),   9)
 #define Command_CALLBACK NULL
 #define Command_DEFAULT NULL
 #define Command_cmd_hello_MSGTYPE CommandHello
@@ -370,6 +437,7 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,configure_adc,cmd.configure_adc),   8)
 #define Command_cmd_read_adc_MSGTYPE CommandReadADC
 #define Command_cmd_swd_check_MSGTYPE CommandSWDCheck
 #define Command_cmd_configure_adc_MSGTYPE CommandConfigureADC
+#define Command_cmd_swim_MSGTYPE CommandSWIM
 
 #define ResponseOk_FIELDLIST(X, a) \
 
@@ -382,7 +450,8 @@ X(a, STATIC,   SINGULAR, STRING,   message,           1)
 #define ResponseError_DEFAULT NULL
 
 #define ResponseHello_FIELDLIST(X, a) \
-X(a, STATIC,   SINGULAR, UENUM,    version,           1)
+X(a, STATIC,   SINGULAR, UENUM,    version,           1) \
+X(a, STATIC,   SINGULAR, BOOL,     supports_swim,     2)
 #define ResponseHello_CALLBACK NULL
 #define ResponseHello_DEFAULT NULL
 
@@ -406,13 +475,20 @@ X(a, STATIC,   SINGULAR, BOOL,     enabled,           1)
 #define ResponseSWDCheck_CALLBACK NULL
 #define ResponseSWDCheck_DEFAULT NULL
 
+#define ResponseSWIM_FIELDLIST(X, a) \
+X(a, CALLBACK, SINGULAR, BYTES,    data,              1) \
+X(a, STATIC,   SINGULAR, UINT32,   sync_ns,           2)
+#define ResponseSWIM_CALLBACK pb_default_field_callback
+#define ResponseSWIM_DEFAULT NULL
+
 #define Response_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (type,ok,type.ok),   1) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (type,error,type.error),   2) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (type,hello,type.hello),   3) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (type,adc,type.adc),   4) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (type,trigger_timeout,type.trigger_timeout),   5) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (type,swd_check,type.swd_check),   6)
+X(a, STATIC,   ONEOF,    MESSAGE,  (type,swd_check,type.swd_check),   6) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (type,swim,type.swim),   7)
 #define Response_CALLBACK NULL
 #define Response_DEFAULT NULL
 #define Response_type_ok_MSGTYPE ResponseOk
@@ -421,6 +497,7 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (type,swd_check,type.swd_check),   6)
 #define Response_type_adc_MSGTYPE ResponseADC
 #define Response_type_trigger_timeout_MSGTYPE ResponseTriggerTimeout
 #define Response_type_swd_check_MSGTYPE ResponseSWDCheck
+#define Response_type_swim_MSGTYPE ResponseSWIM
 
 extern const pb_msgdesc_t CaptureResponse_msg;
 extern const pb_msgdesc_t CommandHello_msg;
@@ -430,6 +507,7 @@ extern const pb_msgdesc_t CommandSWDCheck_msg;
 extern const pb_msgdesc_t CommandConfigureGlitcher_msg;
 extern const pb_msgdesc_t CommandConfigureADC_msg;
 extern const pb_msgdesc_t CommandReadADC_msg;
+extern const pb_msgdesc_t CommandSWIM_msg;
 extern const pb_msgdesc_t Command_msg;
 extern const pb_msgdesc_t ResponseOk_msg;
 extern const pb_msgdesc_t ResponseError_msg;
@@ -438,6 +516,7 @@ extern const pb_msgdesc_t ResponseTriggerTimeout_msg;
 extern const pb_msgdesc_t ResponseADC_msg;
 extern const pb_msgdesc_t ResponseInfo_msg;
 extern const pb_msgdesc_t ResponseSWDCheck_msg;
+extern const pb_msgdesc_t ResponseSWIM_msg;
 extern const pb_msgdesc_t Response_msg;
 
 /* Defines for backwards compatibility with code written before nanopb-0.4.0 */
@@ -449,6 +528,7 @@ extern const pb_msgdesc_t Response_msg;
 #define CommandConfigureGlitcher_fields &CommandConfigureGlitcher_msg
 #define CommandConfigureADC_fields &CommandConfigureADC_msg
 #define CommandReadADC_fields &CommandReadADC_msg
+#define CommandSWIM_fields &CommandSWIM_msg
 #define Command_fields &Command_msg
 #define ResponseOk_fields &ResponseOk_msg
 #define ResponseError_fields &ResponseError_msg
@@ -457,11 +537,13 @@ extern const pb_msgdesc_t Response_msg;
 #define ResponseADC_fields &ResponseADC_msg
 #define ResponseInfo_fields &ResponseInfo_msg
 #define ResponseSWDCheck_fields &ResponseSWDCheck_msg
+#define ResponseSWIM_fields &ResponseSWIM_msg
 #define Response_fields &Response_msg
 
 /* Maximum encoded size of messages (where known) */
 /* CaptureResponse_size depends on runtime parameters */
 /* ResponseADC_size depends on runtime parameters */
+/* ResponseSWIM_size depends on runtime parameters */
 /* Response_size depends on runtime parameters */
 #define CommandCapture_size                      0
 #define CommandConfigureADC_size                 24
@@ -470,10 +552,11 @@ extern const pb_msgdesc_t Response_msg;
 #define CommandHello_size                        0
 #define CommandReadADC_size                      0
 #define CommandSWDCheck_size                     2
-#define Command_size                             45
-#define FAULTIER_PB_H_MAX_SIZE                   ResponseError_size
+#define CommandSWIM_size                         147
+#define Command_size                             150
+#define FAULTIER_PB_H_MAX_SIZE                   Command_size
 #define ResponseError_size                       51
-#define ResponseHello_size                       2
+#define ResponseHello_size                       4
 #define ResponseInfo_size                        11
 #define ResponseOk_size                          0
 #define ResponseSWDCheck_size                    2

@@ -95,6 +95,28 @@ message CommandConfigureADC {
 message CommandReadADC {
 }
 
+enum SWIMFunction {
+    SWIM_ENTER = 0;
+    SWIM_EXIT = 1;
+    SWIM_SRST = 2;
+    SWIM_READ = 3;
+    SWIM_WRITE = 4;
+}
+
+// STM8 SWIM (UM0470) debug access on IO8, with NRST on the SWD header's RST pin.
+message CommandSWIM {
+    SWIMFunction function = 1;
+    // SWIM_READ / SWIM_WRITE: 24-bit target address.
+    uint32 address = 2;
+    // SWIM_READ: number of bytes, 1 to 1024.
+    uint32 length = 3;
+    // SWIM_WRITE: the bytes to write, 1 to 128 (sent as a single WOTF).
+    bytes data = 4;
+    // SWIM_ENTER: attach to a running target instead of holding NRST low
+    // during entry. Fails if the application has turned SWIM into a GPIO.
+    bool hot_attach = 5;
+}
+
 message Command {
     oneof cmd {
         CommandHello hello = 1;
@@ -104,6 +126,7 @@ message Command {
         CommandGlitch glitch = 5;
         CommandReadADC read_adc = 6;
         CommandSWDCheck swd_check = 7;
+        CommandSWIM swim = 9;
     }
 }
 
@@ -117,6 +140,9 @@ message ResponseError {
 
 message ResponseHello {
     FaultierVersion version = 1;
+    // Set by firmware that implements CommandSWIM. Older firmware leaves it
+    // false (and silently drops CommandSWIM), so the host can refuse early.
+    bool supports_swim = 2;
 }
 
 message ResponseTriggerTimeout {
@@ -135,6 +161,14 @@ message ResponseSWDCheck {
     bool enabled = 1;
 }
 
+message ResponseSWIM {
+    // SWIM_READ: the bytes read.
+    bytes data = 1;
+    // SWIM_ENTER: measured length of the target's synchronisation frame
+    // (128 SWIM clocks, nominally 16000 ns for an 8 MHz SWIM clock).
+    uint32 sync_ns = 2;
+}
+
 message Response {
     oneof type {
         ResponseOk ok = 1;
@@ -143,5 +177,6 @@ message Response {
         ResponseADC adc = 4;
         ResponseTriggerTimeout trigger_timeout = 5;
         ResponseSWDCheck swd_check = 6;
+        ResponseSWIM swim = 7;
     }
 }

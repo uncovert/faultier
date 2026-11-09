@@ -30,6 +30,9 @@ PB_BIND(CommandConfigureADC, CommandConfigureADC, AUTO)
 PB_BIND(CommandReadADC, CommandReadADC, AUTO)
 
 
+PB_BIND(CommandSWIM, CommandSWIM, AUTO)
+
+
 PB_BIND(Command, Command, AUTO)
 
 
@@ -54,7 +57,12 @@ PB_BIND(ResponseInfo, ResponseInfo, AUTO)
 PB_BIND(ResponseSWDCheck, ResponseSWDCheck, AUTO)
 
 
+PB_BIND(ResponseSWIM, ResponseSWIM, AUTO)
+
+
 PB_BIND(Response, Response, AUTO)
+
+
 
 
 
