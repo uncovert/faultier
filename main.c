@@ -404,18 +404,30 @@ void writeout(const uint8_t *buf, size_t len)
     }
 }
 
+// Longest silence tolerated in the middle of a control-channel frame before the
+// frame is dropped, so a host that dies mid-command cannot wedge the main loop.
+#define CONTROL_READ_TIMEOUT_US 500000
+
 bool readin(uint8_t *buf, size_t len)
 {
-    for (int i = 0; i < len; i++)
+    size_t received = 0;
+    absolute_time_t deadline = make_timeout_time_us(CONTROL_READ_TIMEOUT_US);
+
+    while (received < len)
     {
-        int r = 0;
-        char data;
-        while (r != 1) {
-            r = tud_vendor_n_read(0, &data, 1);
-            
+        uint32_t r = tud_vendor_n_read(0, buf + received, len - received);
+        if (r > 0) {
+            received += r;
+            deadline = make_timeout_time_us(CONTROL_READ_TIMEOUT_US);
+            continue;
         }
-        
-        buf[i] = data & 0xFF;
+        if (time_reached(deadline)) {
+            return false;
+        }
+        // Only the first USB packet of a frame is guaranteed to be in the FIFO
+        // already: later packets are moved there from within tud_task(), so it
+        // has to keep running while we wait for the rest of a longer command.
+        tud_task();
     }
 
     return true;
