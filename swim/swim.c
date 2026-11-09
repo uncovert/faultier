@@ -54,6 +54,8 @@
 // Entry sequence (UM0470 3.2): 16 us low, four 1 kHz pulses, four 2 kHz pulses,
 // ending with the line released.
 #define SWIM_ENTRY_LOW_US 16
+// Upper bound for a caller-supplied first pulse, to keep entry bounded.
+#define SWIM_ENTRY_LOW_MAX_US 10000
 #define SWIM_ENTRY_SLOW_HALF_US 500
 #define SWIM_ENTRY_FAST_HALF_US 250
 #define SWIM_ENTRY_PULSES 4
@@ -85,8 +87,10 @@
 #define SWIM_SYNC_MAX_NS 32000
 
 // A '0' from the target is high for only 2 SWIM clocks (250 ns) before the next
-// bit starts. A line slower than this to rise has no usable pull-up.
-#define SWIM_MAX_RISE_NS 500
+// bit starts. A line slower than this to rise has no usable pull-up. (On real
+// hardware without a pull-up, an STM8L151 line rose in 400-450 ns and no frame
+// got through.)
+#define SWIM_MAX_RISE_NS 250
 
 struct pin_state {
     gpio_function_t function;
@@ -556,37 +560,37 @@ static swim_status_t comm_reset(void)
 // Release the line for the first time during entry and check how fast the
 // pull-up brings it back: without a strong one nothing else will work, and a
 // clear message beats a parity error later.
-static swim_status_t release_checking_pullup(void)
+static swim_status_t release_checking_pullup(uint32_t max_rise_ns, uint32_t *rise_ns)
 {
     uint32_t irq = save_and_disable_interrupts();
     line_release();
     uint32_t start = cycle_count();
     bool rose = wait_line(true, SWIM_RISE_TIMEOUT_US);
-    uint32_t rise_ns = cycles_to_ns(cycles_between(start, cycle_count()));
+    *rise_ns = cycles_to_ns(cycles_between(start, cycle_count()));
     restore_interrupts(irq);
 
     if (!rose) {
         return fail(SWIM_ERR_LINE_LOW, "SWIM: line stays low after release");
     }
-    if (rise_ns > SWIM_MAX_RISE_NS) {
-        return fail(SWIM_ERR_SLOW_RISE, "SWIM: %lu ns rise, add ~1k pull-up", (unsigned long)rise_ns);
+    if (*rise_ns > max_rise_ns) {
+        return fail(SWIM_ERR_SLOW_RISE, "SWIM: %lu ns rise, add ~1k pull-up", (unsigned long)*rise_ns);
     }
     return SWIM_OK;
 }
 
-static swim_status_t entry_sequence(void)
+static swim_status_t entry_sequence(uint32_t entry_low_us, uint32_t max_rise_ns, uint32_t *rise_ns)
 {
     if (!wait_line(true, SWIM_IDLE_TIMEOUT_US)) {
         return fail(SWIM_ERR_LINE_LOW, "SWIM: line held low (target off?)");
     }
 
     line_drive_low();
-    busy_wait_us_32(SWIM_ENTRY_LOW_US);
+    busy_wait_us_32(entry_low_us);
 
     for (uint i = 0; i < 2 * SWIM_ENTRY_PULSES; i++) {
         uint32_t half_us = (i < SWIM_ENTRY_PULSES) ? SWIM_ENTRY_SLOW_HALF_US : SWIM_ENTRY_FAST_HALF_US;
         if (i == 0) {
-            swim_status_t status = release_checking_pullup();
+            swim_status_t status = release_checking_pullup(max_rise_ns, rise_ns);
             if (status != SWIM_OK) {
                 return status;
             }
@@ -645,9 +649,18 @@ static swim_status_t require_active(void)
     return SWIM_OK;
 }
 
-swim_status_t swim_enter(bool hot_attach, uint32_t *sync_ns)
+swim_status_t swim_enter(const struct swim_enter_options *options, struct swim_enter_result *result)
 {
     start_operation();
+
+    bool hot_attach = options->hot_attach;
+    uint32_t entry_low_us = options->entry_low_us ? options->entry_low_us : SWIM_ENTRY_LOW_US;
+    uint32_t max_rise_ns = options->max_rise_ns ? options->max_rise_ns : SWIM_MAX_RISE_NS;
+    uint32_t rise_ns = 0;
+    if (entry_low_us > SWIM_ENTRY_LOW_MAX_US) {
+        return fail(SWIM_ERR_ARGUMENT, "SWIM: entry_low_us must be <= %u", SWIM_ENTRY_LOW_MAX_US);
+    }
+
     swim.active = false;
 
     // Save the pins before pio_setup() reconfigures SWIM_IO, so that leaving
@@ -665,7 +678,7 @@ swim_status_t swim_enter(bool hot_attach, uint32_t *sync_ns)
         rst_assert();
     }
 
-    status = entry_sequence();
+    status = entry_sequence(entry_low_us, max_rise_ns, &rise_ns);
 
     // Debug mode: whole memory range and SRST usable, internal resets masked.
     if (status == SWIM_OK) {
@@ -698,8 +711,9 @@ swim_status_t swim_enter(bool hot_attach, uint32_t *sync_ns)
     }
 
     swim.active = true;
-    if (sync_ns != NULL) {
-        *sync_ns = cycles_to_ns(swim.sync_cycles);
+    if (result != NULL) {
+        result->sync_ns = cycles_to_ns(swim.sync_cycles);
+        result->rise_ns = rise_ns;
     }
     return SWIM_OK;
 }

@@ -6,4 +6,4 @@ void protocol_ok();
 void protocol_hello();
 void protocol_trigger_timeout();
 void protocol_swd_check(bool success);
-void protocol_swim(const uint8_t *data, size_t data_size, uint32_t sync_ns);
+void protocol_swim(const uint8_t *data, size_t data_size, uint32_t sync_ns, uint32_t rise_ns);

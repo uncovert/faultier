@@ -134,6 +134,13 @@ typedef struct _CommandSWIM {
     /* SWIM_ENTER: attach to a running target instead of holding NRST low
  during entry. Fails if the application has turned SWIM into a GPIO. */
     bool hot_attach;
+    /* SWIM_ENTER tuning, 0 = firmware default. Length of the first low pulse
+ of the entry sequence (default 16 us, as in UM0470). */
+    uint32_t entry_low_us;
+    /* SWIM_ENTER tuning, 0 = firmware default. Longest accepted rise time of
+ the released line before giving up on a missing pull-up (default
+ 250 ns: a '0' bit is high for only 2 SWIM clocks). */
+    uint32_t max_rise_ns;
 } CommandSWIM;
 
 /* Answer ResponseOk, then reboot into the RP2040 USB bootloader (as if BOOTSEL
@@ -194,6 +201,8 @@ typedef struct _ResponseSWIM {
     /* SWIM_ENTER: measured length of the target's synchronisation frame
  (128 SWIM clocks, nominally 16000 ns for an 8 MHz SWIM clock). */
     uint32_t sync_ns;
+    /* SWIM_ENTER: measured rise time of the released line. */
+    uint32_t rise_ns;
 } ResponseSWIM;
 
 typedef struct _Response {
@@ -294,7 +303,7 @@ extern "C" {
 #define CommandConfigureGlitcher_init_default    {_TriggersType_MIN, 0, 0, _TriggerSource_MIN, _GlitchOutput_MIN, _TriggerPullConfiguration_MIN, _GlitchOutput_MIN, 0}
 #define CommandConfigureADC_init_default         {_ADCSource_MIN, 0, 0}
 #define CommandReadADC_init_default              {0}
-#define CommandSWIM_init_default                 {_SWIMFunction_MIN, 0, 0, {0, {0}}, 0}
+#define CommandSWIM_init_default                 {_SWIMFunction_MIN, 0, 0, {0, {0}}, 0, 0, 0}
 #define CommandRebootBootloader_init_default     {0}
 #define Command_init_default                     {0, {CommandHello_init_default}}
 #define ResponseOk_init_default                  {0}
@@ -304,7 +313,7 @@ extern "C" {
 #define ResponseADC_init_default                 {{{NULL}, NULL}}
 #define ResponseInfo_init_default                {0}
 #define ResponseSWDCheck_init_default            {0}
-#define ResponseSWIM_init_default                {{{NULL}, NULL}, 0}
+#define ResponseSWIM_init_default                {{{NULL}, NULL}, 0, 0}
 #define Response_init_default                    {0, {ResponseOk_init_default}}
 #define CaptureResponse_init_zero                {{{NULL}, NULL}}
 #define CommandHello_init_zero                   {0}
@@ -314,7 +323,7 @@ extern "C" {
 #define CommandConfigureGlitcher_init_zero       {_TriggersType_MIN, 0, 0, _TriggerSource_MIN, _GlitchOutput_MIN, _TriggerPullConfiguration_MIN, _GlitchOutput_MIN, 0}
 #define CommandConfigureADC_init_zero            {_ADCSource_MIN, 0, 0}
 #define CommandReadADC_init_zero                 {0}
-#define CommandSWIM_init_zero                    {_SWIMFunction_MIN, 0, 0, {0, {0}}, 0}
+#define CommandSWIM_init_zero                    {_SWIMFunction_MIN, 0, 0, {0, {0}}, 0, 0, 0}
 #define CommandRebootBootloader_init_zero        {0}
 #define Command_init_zero                        {0, {CommandHello_init_zero}}
 #define ResponseOk_init_zero                     {0}
@@ -324,7 +333,7 @@ extern "C" {
 #define ResponseADC_init_zero                    {{{NULL}, NULL}}
 #define ResponseInfo_init_zero                   {0}
 #define ResponseSWDCheck_init_zero               {0}
-#define ResponseSWIM_init_zero                   {{{NULL}, NULL}, 0}
+#define ResponseSWIM_init_zero                   {{{NULL}, NULL}, 0, 0}
 #define Response_init_zero                       {0, {ResponseOk_init_zero}}
 
 /* Field tags (for use in manual encoding/decoding) */
@@ -346,6 +355,8 @@ extern "C" {
 #define CommandSWIM_length_tag                   3
 #define CommandSWIM_data_tag                     4
 #define CommandSWIM_hot_attach_tag               5
+#define CommandSWIM_entry_low_us_tag             6
+#define CommandSWIM_max_rise_ns_tag              7
 #define Command_hello_tag                        1
 #define Command_configure_glitcher_tag           2
 #define Command_capture_tag                      4
@@ -363,6 +374,7 @@ extern "C" {
 #define ResponseSWDCheck_enabled_tag             1
 #define ResponseSWIM_data_tag                    1
 #define ResponseSWIM_sync_ns_tag                 2
+#define ResponseSWIM_rise_ns_tag                 3
 #define Response_ok_tag                          1
 #define Response_error_tag                       2
 #define Response_hello_tag                       3
@@ -426,7 +438,9 @@ X(a, STATIC,   SINGULAR, UENUM,    function,          1) \
 X(a, STATIC,   SINGULAR, UINT32,   address,           2) \
 X(a, STATIC,   SINGULAR, UINT32,   length,            3) \
 X(a, STATIC,   SINGULAR, BYTES,    data,              4) \
-X(a, STATIC,   SINGULAR, BOOL,     hot_attach,        5)
+X(a, STATIC,   SINGULAR, BOOL,     hot_attach,        5) \
+X(a, STATIC,   SINGULAR, UINT32,   entry_low_us,      6) \
+X(a, STATIC,   SINGULAR, UINT32,   max_rise_ns,       7)
 #define CommandSWIM_CALLBACK NULL
 #define CommandSWIM_DEFAULT NULL
 
@@ -495,7 +509,8 @@ X(a, STATIC,   SINGULAR, BOOL,     enabled,           1)
 
 #define ResponseSWIM_FIELDLIST(X, a) \
 X(a, CALLBACK, SINGULAR, BYTES,    data,              1) \
-X(a, STATIC,   SINGULAR, UINT32,   sync_ns,           2)
+X(a, STATIC,   SINGULAR, UINT32,   sync_ns,           2) \
+X(a, STATIC,   SINGULAR, UINT32,   rise_ns,           3)
 #define ResponseSWIM_CALLBACK pb_default_field_callback
 #define ResponseSWIM_DEFAULT NULL
 
@@ -573,8 +588,8 @@ extern const pb_msgdesc_t Response_msg;
 #define CommandReadADC_size                      0
 #define CommandRebootBootloader_size             0
 #define CommandSWDCheck_size                     2
-#define CommandSWIM_size                         147
-#define Command_size                             150
+#define CommandSWIM_size                         159
+#define Command_size                             162
 #define FAULTIER_PB_H_MAX_SIZE                   Command_size
 #define ResponseError_size                       51
 #define ResponseHello_size                       4

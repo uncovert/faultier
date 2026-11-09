@@ -115,6 +115,13 @@ message CommandSWIM {
     // SWIM_ENTER: attach to a running target instead of holding NRST low
     // during entry. Fails if the application has turned SWIM into a GPIO.
     bool hot_attach = 5;
+    // SWIM_ENTER tuning, 0 = firmware default. Length of the first low pulse
+    // of the entry sequence (default 16 us, as in UM0470).
+    uint32 entry_low_us = 6;
+    // SWIM_ENTER tuning, 0 = firmware default. Longest accepted rise time of
+    // the released line before giving up on a missing pull-up (default
+    // 250 ns: a '0' bit is high for only 2 SWIM clocks).
+    uint32 max_rise_ns = 7;
 }
 
 // Answer ResponseOk, then reboot into the RP2040 USB bootloader (as if BOOTSEL
@@ -172,6 +179,8 @@ message ResponseSWIM {
     // SWIM_ENTER: measured length of the target's synchronisation frame
     // (128 SWIM clocks, nominally 16000 ns for an 8 MHz SWIM clock).
     uint32 sync_ns = 2;
+    // SWIM_ENTER: measured rise time of the released line.
+    uint32 rise_ns = 3;
 }
 
 message Response {

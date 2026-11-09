@@ -35,11 +35,24 @@ typedef enum {
     SWIM_ERR_TIMEOUT,
 } swim_status_t;
 
+struct swim_enter_options {
+    // Do not hold NRST low during entry; the running firmware keeps running.
+    bool hot_attach;
+    // First low pulse of the entry sequence, 0 = default (16 us). Max 10 ms.
+    uint32_t entry_low_us;
+    // Longest accepted rise time of the released line, 0 = default (250 ns).
+    uint32_t max_rise_ns;
+};
+
+struct swim_enter_result {
+    uint32_t sync_ns;   // length of the target's synchronisation frame
+    uint32_t rise_ns;   // rise time of the released line
+};
+
 // Put the target into SWIM active mode with debug access (SWIM_CSR = 0xA0).
 // Unless hot_attach is set, NRST is held low during entry, so this works even if
-// the application reuses the SWIM pin; the core is then left stalled. On success
-// *sync_ns is the length of the target's synchronisation frame.
-swim_status_t swim_enter(bool hot_attach, uint32_t *sync_ns);
+// the application reuses the SWIM pin; the core is then left stalled.
+swim_status_t swim_enter(const struct swim_enter_options *options, struct swim_enter_result *result);
 
 // Reset the target so it leaves SWIM and runs its application, then hand the
 // pins back. The pins are released even if the target does not answer.

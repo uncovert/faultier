@@ -155,9 +155,10 @@ pb_ostream_t sizestream = {0};
     protocol_swd_check_(&stdoutstream, success);
 }
 
-size_t protocol_swim_(pb_ostream_t *stream, const uint8_t *data, size_t data_size, uint32_t sync_ns) {
+size_t protocol_swim_(pb_ostream_t *stream, const uint8_t *data, size_t data_size, uint32_t sync_ns, uint32_t rise_ns) {
     ResponseSWIM swim = ResponseSWIM_init_zero;
     swim.sync_ns = sync_ns;
+    swim.rise_ns = rise_ns;
     // Same bytes-callback encoder as the ADC samples.
     struct encode_adc_data d = {
         .adc_buffer = (uint8_t *)data,
@@ -175,9 +176,9 @@ size_t protocol_swim_(pb_ostream_t *stream, const uint8_t *data, size_t data_siz
     return stream->bytes_written;
 }
 
-void protocol_swim(const uint8_t *data, size_t data_size, uint32_t sync_ns) {
+void protocol_swim(const uint8_t *data, size_t data_size, uint32_t sync_ns, uint32_t rise_ns) {
     pb_ostream_t sizestream = {0};
-    write_header(protocol_swim_(&sizestream, data, data_size, sync_ns));
+    write_header(protocol_swim_(&sizestream, data, data_size, sync_ns, rise_ns));
     pb_ostream_t stdoutstream = {&callback, NULL, SIZE_MAX, 0};
-    protocol_swim_(&stdoutstream, data, data_size, sync_ns);
+    protocol_swim_(&stdoutstream, data, data_size, sync_ns, rise_ns);
 }

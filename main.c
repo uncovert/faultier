@@ -545,16 +545,23 @@ static uint8_t swim_read_buffer[SWIM_MAX_READ];
 static void handle_swim(const CommandSWIM *cmd)
 {
     swim_status_t status;
-    uint32_t sync_ns = 0;
 
     switch (cmd->function) {
         case SWIMFunction_SWIM_ENTER:
-            status = swim_enter(cmd->hot_attach, &sync_ns);
+        {
+            struct swim_enter_options options = {
+                .hot_attach = cmd->hot_attach,
+                .entry_low_us = cmd->entry_low_us,
+                .max_rise_ns = cmd->max_rise_ns,
+            };
+            struct swim_enter_result result = {0};
+            status = swim_enter(&options, &result);
             if (status == SWIM_OK) {
-                protocol_swim(NULL, 0, sync_ns);
+                protocol_swim(NULL, 0, result.sync_ns, result.rise_ns);
                 return;
             }
-            break;
+        }
+        break;
         case SWIMFunction_SWIM_EXIT:
             status = swim_exit();
             break;
@@ -565,7 +572,7 @@ static void handle_swim(const CommandSWIM *cmd)
             // swim_read() rejects lengths above SWIM_MAX_READ before touching the buffer.
             status = swim_read(cmd->address, swim_read_buffer, cmd->length);
             if (status == SWIM_OK) {
-                protocol_swim(swim_read_buffer, cmd->length, 0);
+                protocol_swim(swim_read_buffer, cmd->length, 0, 0);
                 return;
             }
             break;

@@ -24,33 +24,33 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x66\x61ultier.proto\"\x1f\n\x0f\x43\x61ptureResponse\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"\x0e\n\x0c\x43ommandHello\"\x10\n\x0e\x43ommandCapture\"\x0f\n\rCommandGlitch\"6\n\x0f\x43ommandSWDCheck\x12#\n\x08\x66unction\x18\x01 \x01(\x0e\x32\x11.SWDCheckFunction\"\xb1\x02\n\x18\x43ommandConfigureGlitcher\x12)\n\x12power_cycle_output\x18\x07 \x01(\x0e\x32\r.GlitchOutput\x12\x1a\n\x12power_cycle_length\x18\x08 \x01(\x05\x12#\n\x0ctrigger_type\x18\x01 \x01(\x0e\x32\r.TriggersType\x12\r\n\x05\x64\x65lay\x18\x02 \x01(\x05\x12\r\n\x05pulse\x18\x03 \x01(\x05\x12&\n\x0etrigger_source\x18\x04 \x01(\x0e\x32\x0e.TriggerSource\x12$\n\rglitch_output\x18\x05 \x01(\x0e\x32\r.GlitchOutput\x12=\n\x1atrigger_pull_configuration\x18\x06 \x01(\x0e\x32\x19.TriggerPullConfiguration\"_\n\x13\x43ommandConfigureADC\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ADCSource\x12\x14\n\x0csample_count\x18\x02 \x01(\x05\x12\x16\n\x0e\x63lock_division\x18\x03 \x01(\x05\"\x10\n\x0e\x43ommandReadADC\"q\n\x0b\x43ommandSWIM\x12\x1f\n\x08\x66unction\x18\x01 \x01(\x0e\x32\r.SWIMFunction\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\r\x12\x0e\n\x06length\x18\x03 \x01(\r\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\x12\x12\n\nhot_attach\x18\x05 \x01(\x08\"\x19\n\x17\x43ommandRebootBootloader\"\xff\x02\n\x07\x43ommand\x12\x1e\n\x05hello\x18\x01 \x01(\x0b\x32\r.CommandHelloH\x00\x12\x37\n\x12\x63onfigure_glitcher\x18\x02 \x01(\x0b\x32\x19.CommandConfigureGlitcherH\x00\x12-\n\rconfigure_adc\x18\x08 \x01(\x0b\x32\x14.CommandConfigureADCH\x00\x12\"\n\x07\x63\x61pture\x18\x04 \x01(\x0b\x32\x0f.CommandCaptureH\x00\x12 \n\x06glitch\x18\x05 \x01(\x0b\x32\x0e.CommandGlitchH\x00\x12#\n\x08read_adc\x18\x06 \x01(\x0b\x32\x0f.CommandReadADCH\x00\x12%\n\tswd_check\x18\x07 \x01(\x0b\x32\x10.CommandSWDCheckH\x00\x12\x1c\n\x04swim\x18\t \x01(\x0b\x32\x0c.CommandSWIMH\x00\x12\x35\n\x11reboot_bootloader\x18\n \x01(\x0b\x32\x18.CommandRebootBootloaderH\x00\x42\x05\n\x03\x63md\"\x0c\n\nResponseOk\" \n\rResponseError\x12\x0f\n\x07message\x18\x01 \x01(\t\"I\n\rResponseHello\x12!\n\x07version\x18\x01 \x01(\x0e\x32\x10.FaultierVersion\x12\x15\n\rsupports_swim\x18\x02 \x01(\x08\"\x18\n\x16ResponseTriggerTimeout\"\x1e\n\x0bResponseADC\x12\x0f\n\x07samples\x18\x01 \x01(\x0c\"!\n\x0cResponseInfo\x12\x11\n\tfrequency\x18\x01 \x01(\x05\"#\n\x10ResponseSWDCheck\x12\x0f\n\x07\x65nabled\x18\x01 \x01(\x08\"-\n\x0cResponseSWIM\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0f\n\x07sync_ns\x18\x02 \x01(\r\"\x87\x02\n\x08Response\x12\x19\n\x02ok\x18\x01 \x01(\x0b\x32\x0b.ResponseOkH\x00\x12\x1f\n\x05\x65rror\x18\x02 \x01(\x0b\x32\x0e.ResponseErrorH\x00\x12\x1f\n\x05hello\x18\x03 \x01(\x0b\x32\x0e.ResponseHelloH\x00\x12\x1b\n\x03\x61\x64\x63\x18\x04 \x01(\x0b\x32\x0c.ResponseADCH\x00\x12\x32\n\x0ftrigger_timeout\x18\x05 \x01(\x0b\x32\x17.ResponseTriggerTimeoutH\x00\x12&\n\tswd_check\x18\x06 \x01(\x0b\x32\x11.ResponseSWDCheckH\x00\x12\x1d\n\x04swim\x18\x07 \x01(\x0b\x32\r.ResponseSWIMH\x00\x42\x06\n\x04type*B\n\x0f\x46\x61ultierVersion\x12\x19\n\x15\x46\x41ULTIER_VERSION_ZERO\x10\x00\x12\x14\n\x10\x46\x41ULTIER_VERSION\x10\x02*:\n\x08\x43ommands\x12\r\n\tCMD_RESET\x10\x00\x12\x0e\n\nCMD_GLITCH\x10\x01\x12\x0f\n\x0b\x43MD_CAPTURE\x10\x02*N\n\rTriggerSource\x12\x13\n\x0fTRIGGER_IN_NONE\x10\x00\x12\x13\n\x0fTRIGGER_IN_EXT0\x10\x01\x12\x13\n\x0fTRIGGER_IN_EXT1\x10\x02*s\n\x0cGlitchOutput\x12\x0f\n\x0bOUT_CROWBAR\x10\x00\x12\x0c\n\x08OUT_MUX0\x10\x01\x12\x0c\n\x08OUT_MUX1\x10\x02\x12\x0c\n\x08OUT_MUX2\x10\x03\x12\x0c\n\x08OUT_EXT0\x10\x04\x12\x0c\n\x08OUT_EXT1\x10\x05\x12\x0c\n\x08OUT_NONE\x10\x06*\xae\x01\n\x0cTriggersType\x12\x10\n\x0cTRIGGER_NONE\x10\x00\x12\x10\n\x0cTRIGGER_HIGH\x10\x01\x12\x0f\n\x0bTRIGGER_LOW\x10\x02\x12\x17\n\x13TRIGGER_RISING_EDGE\x10\x03\x12\x18\n\x14TRIGGER_FALLING_EDGE\x10\x04\x12\x1a\n\x16TRIGGER_PULSE_POSITIVE\x10\x05\x12\x1a\n\x16TRIGGER_PULSE_NEGATIVE\x10\x06*8\n\tADCSource\x12\x0f\n\x0b\x41\x44\x43_CROWBAR\x10\x00\x12\x0c\n\x08\x41\x44\x43_MUX0\x10\x01\x12\x0c\n\x08\x41\x44\x43_EXT1\x10\x02*Q\n\x0b\x41uxFunction\x12\x0c\n\x08\x41UX_NONE\x10\x00\x12\x0c\n\x08\x41UX_UART\x10\x01\x12\x13\n\x0f\x41UX_SWD_CHECKER\x10\x02\x12\x11\n\rAUX_SWD_PROBE\x10\x03*>\n\x10SWDCheckFunction\x12\x15\n\x11SWD_CHECK_ENABLED\x10\x00\x12\x13\n\x0fSWD_CHECK_NRF52\x10\x01*]\n\x18TriggerPullConfiguration\x12\x15\n\x11TRIGGER_PULL_NONE\x10\x00\x12\x13\n\x0fTRIGGER_PULL_UP\x10\x01\x12\x15\n\x11TRIGGER_PULL_DOWN\x10\x02*[\n\x0cSWIMFunction\x12\x0e\n\nSWIM_ENTER\x10\x00\x12\r\n\tSWIM_EXIT\x10\x01\x12\r\n\tSWIM_SRST\x10\x02\x12\r\n\tSWIM_READ\x10\x03\x12\x0e\n\nSWIM_WRITE\x10\x04\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x66\x61ultier.proto\"\x1f\n\x0f\x43\x61ptureResponse\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"\x0e\n\x0c\x43ommandHello\"\x10\n\x0e\x43ommandCapture\"\x0f\n\rCommandGlitch\"6\n\x0f\x43ommandSWDCheck\x12#\n\x08\x66unction\x18\x01 \x01(\x0e\x32\x11.SWDCheckFunction\"\xb1\x02\n\x18\x43ommandConfigureGlitcher\x12)\n\x12power_cycle_output\x18\x07 \x01(\x0e\x32\r.GlitchOutput\x12\x1a\n\x12power_cycle_length\x18\x08 \x01(\x05\x12#\n\x0ctrigger_type\x18\x01 \x01(\x0e\x32\r.TriggersType\x12\r\n\x05\x64\x65lay\x18\x02 \x01(\x05\x12\r\n\x05pulse\x18\x03 \x01(\x05\x12&\n\x0etrigger_source\x18\x04 \x01(\x0e\x32\x0e.TriggerSource\x12$\n\rglitch_output\x18\x05 \x01(\x0e\x32\r.GlitchOutput\x12=\n\x1atrigger_pull_configuration\x18\x06 \x01(\x0e\x32\x19.TriggerPullConfiguration\"_\n\x13\x43ommandConfigureADC\x12\x1a\n\x06source\x18\x01 \x01(\x0e\x32\n.ADCSource\x12\x14\n\x0csample_count\x18\x02 \x01(\x05\x12\x16\n\x0e\x63lock_division\x18\x03 \x01(\x05\"\x10\n\x0e\x43ommandReadADC\"\x9c\x01\n\x0b\x43ommandSWIM\x12\x1f\n\x08\x66unction\x18\x01 \x01(\x0e\x32\r.SWIMFunction\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\r\x12\x0e\n\x06length\x18\x03 \x01(\r\x12\x0c\n\x04\x64\x61ta\x18\x04 \x01(\x0c\x12\x12\n\nhot_attach\x18\x05 \x01(\x08\x12\x14\n\x0c\x65ntry_low_us\x18\x06 \x01(\r\x12\x13\n\x0bmax_rise_ns\x18\x07 \x01(\r\"\x19\n\x17\x43ommandRebootBootloader\"\xff\x02\n\x07\x43ommand\x12\x1e\n\x05hello\x18\x01 \x01(\x0b\x32\r.CommandHelloH\x00\x12\x37\n\x12\x63onfigure_glitcher\x18\x02 \x01(\x0b\x32\x19.CommandConfigureGlitcherH\x00\x12-\n\rconfigure_adc\x18\x08 \x01(\x0b\x32\x14.CommandConfigureADCH\x00\x12\"\n\x07\x63\x61pture\x18\x04 \x01(\x0b\x32\x0f.CommandCaptureH\x00\x12 \n\x06glitch\x18\x05 \x01(\x0b\x32\x0e.CommandGlitchH\x00\x12#\n\x08read_adc\x18\x06 \x01(\x0b\x32\x0f.CommandReadADCH\x00\x12%\n\tswd_check\x18\x07 \x01(\x0b\x32\x10.CommandSWDCheckH\x00\x12\x1c\n\x04swim\x18\t \x01(\x0b\x32\x0c.CommandSWIMH\x00\x12\x35\n\x11reboot_bootloader\x18\n \x01(\x0b\x32\x18.CommandRebootBootloaderH\x00\x42\x05\n\x03\x63md\"\x0c\n\nResponseOk\" \n\rResponseError\x12\x0f\n\x07message\x18\x01 \x01(\t\"I\n\rResponseHello\x12!\n\x07version\x18\x01 \x01(\x0e\x32\x10.FaultierVersion\x12\x15\n\rsupports_swim\x18\x02 \x01(\x08\"\x18\n\x16ResponseTriggerTimeout\"\x1e\n\x0bResponseADC\x12\x0f\n\x07samples\x18\x01 \x01(\x0c\"!\n\x0cResponseInfo\x12\x11\n\tfrequency\x18\x01 \x01(\x05\"#\n\x10ResponseSWDCheck\x12\x0f\n\x07\x65nabled\x18\x01 \x01(\x08\">\n\x0cResponseSWIM\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0f\n\x07sync_ns\x18\x02 \x01(\r\x12\x0f\n\x07rise_ns\x18\x03 \x01(\r\"\x87\x02\n\x08Response\x12\x19\n\x02ok\x18\x01 \x01(\x0b\x32\x0b.ResponseOkH\x00\x12\x1f\n\x05\x65rror\x18\x02 \x01(\x0b\x32\x0e.ResponseErrorH\x00\x12\x1f\n\x05hello\x18\x03 \x01(\x0b\x32\x0e.ResponseHelloH\x00\x12\x1b\n\x03\x61\x64\x63\x18\x04 \x01(\x0b\x32\x0c.ResponseADCH\x00\x12\x32\n\x0ftrigger_timeout\x18\x05 \x01(\x0b\x32\x17.ResponseTriggerTimeoutH\x00\x12&\n\tswd_check\x18\x06 \x01(\x0b\x32\x11.ResponseSWDCheckH\x00\x12\x1d\n\x04swim\x18\x07 \x01(\x0b\x32\r.ResponseSWIMH\x00\x42\x06\n\x04type*B\n\x0f\x46\x61ultierVersion\x12\x19\n\x15\x46\x41ULTIER_VERSION_ZERO\x10\x00\x12\x14\n\x10\x46\x41ULTIER_VERSION\x10\x02*:\n\x08\x43ommands\x12\r\n\tCMD_RESET\x10\x00\x12\x0e\n\nCMD_GLITCH\x10\x01\x12\x0f\n\x0b\x43MD_CAPTURE\x10\x02*N\n\rTriggerSource\x12\x13\n\x0fTRIGGER_IN_NONE\x10\x00\x12\x13\n\x0fTRIGGER_IN_EXT0\x10\x01\x12\x13\n\x0fTRIGGER_IN_EXT1\x10\x02*s\n\x0cGlitchOutput\x12\x0f\n\x0bOUT_CROWBAR\x10\x00\x12\x0c\n\x08OUT_MUX0\x10\x01\x12\x0c\n\x08OUT_MUX1\x10\x02\x12\x0c\n\x08OUT_MUX2\x10\x03\x12\x0c\n\x08OUT_EXT0\x10\x04\x12\x0c\n\x08OUT_EXT1\x10\x05\x12\x0c\n\x08OUT_NONE\x10\x06*\xae\x01\n\x0cTriggersType\x12\x10\n\x0cTRIGGER_NONE\x10\x00\x12\x10\n\x0cTRIGGER_HIGH\x10\x01\x12\x0f\n\x0bTRIGGER_LOW\x10\x02\x12\x17\n\x13TRIGGER_RISING_EDGE\x10\x03\x12\x18\n\x14TRIGGER_FALLING_EDGE\x10\x04\x12\x1a\n\x16TRIGGER_PULSE_POSITIVE\x10\x05\x12\x1a\n\x16TRIGGER_PULSE_NEGATIVE\x10\x06*8\n\tADCSource\x12\x0f\n\x0b\x41\x44\x43_CROWBAR\x10\x00\x12\x0c\n\x08\x41\x44\x43_MUX0\x10\x01\x12\x0c\n\x08\x41\x44\x43_EXT1\x10\x02*Q\n\x0b\x41uxFunction\x12\x0c\n\x08\x41UX_NONE\x10\x00\x12\x0c\n\x08\x41UX_UART\x10\x01\x12\x13\n\x0f\x41UX_SWD_CHECKER\x10\x02\x12\x11\n\rAUX_SWD_PROBE\x10\x03*>\n\x10SWDCheckFunction\x12\x15\n\x11SWD_CHECK_ENABLED\x10\x00\x12\x13\n\x0fSWD_CHECK_NRF52\x10\x01*]\n\x18TriggerPullConfiguration\x12\x15\n\x11TRIGGER_PULL_NONE\x10\x00\x12\x13\n\x0fTRIGGER_PULL_UP\x10\x01\x12\x15\n\x11TRIGGER_PULL_DOWN\x10\x02*[\n\x0cSWIMFunction\x12\x0e\n\nSWIM_ENTER\x10\x00\x12\r\n\tSWIM_EXIT\x10\x01\x12\r\n\tSWIM_SRST\x10\x02\x12\r\n\tSWIM_READ\x10\x03\x12\x0e\n\nSWIM_WRITE\x10\x04\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'faultier_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_FAULTIERVERSION']._serialized_start=1675
-  _globals['_FAULTIERVERSION']._serialized_end=1741
-  _globals['_COMMANDS']._serialized_start=1743
-  _globals['_COMMANDS']._serialized_end=1801
-  _globals['_TRIGGERSOURCE']._serialized_start=1803
-  _globals['_TRIGGERSOURCE']._serialized_end=1881
-  _globals['_GLITCHOUTPUT']._serialized_start=1883
-  _globals['_GLITCHOUTPUT']._serialized_end=1998
-  _globals['_TRIGGERSTYPE']._serialized_start=2001
-  _globals['_TRIGGERSTYPE']._serialized_end=2175
-  _globals['_ADCSOURCE']._serialized_start=2177
-  _globals['_ADCSOURCE']._serialized_end=2233
-  _globals['_AUXFUNCTION']._serialized_start=2235
-  _globals['_AUXFUNCTION']._serialized_end=2316
-  _globals['_SWDCHECKFUNCTION']._serialized_start=2318
-  _globals['_SWDCHECKFUNCTION']._serialized_end=2380
-  _globals['_TRIGGERPULLCONFIGURATION']._serialized_start=2382
-  _globals['_TRIGGERPULLCONFIGURATION']._serialized_end=2475
-  _globals['_SWIMFUNCTION']._serialized_start=2477
-  _globals['_SWIMFUNCTION']._serialized_end=2568
+  _globals['_FAULTIERVERSION']._serialized_start=1736
+  _globals['_FAULTIERVERSION']._serialized_end=1802
+  _globals['_COMMANDS']._serialized_start=1804
+  _globals['_COMMANDS']._serialized_end=1862
+  _globals['_TRIGGERSOURCE']._serialized_start=1864
+  _globals['_TRIGGERSOURCE']._serialized_end=1942
+  _globals['_GLITCHOUTPUT']._serialized_start=1944
+  _globals['_GLITCHOUTPUT']._serialized_end=2059
+  _globals['_TRIGGERSTYPE']._serialized_start=2062
+  _globals['_TRIGGERSTYPE']._serialized_end=2236
+  _globals['_ADCSOURCE']._serialized_start=2238
+  _globals['_ADCSOURCE']._serialized_end=2294
+  _globals['_AUXFUNCTION']._serialized_start=2296
+  _globals['_AUXFUNCTION']._serialized_end=2377
+  _globals['_SWDCHECKFUNCTION']._serialized_start=2379
+  _globals['_SWDCHECKFUNCTION']._serialized_end=2441
+  _globals['_TRIGGERPULLCONFIGURATION']._serialized_start=2443
+  _globals['_TRIGGERPULLCONFIGURATION']._serialized_end=2536
+  _globals['_SWIMFUNCTION']._serialized_start=2538
+  _globals['_SWIMFUNCTION']._serialized_end=2629
   _globals['_CAPTURERESPONSE']._serialized_start=18
   _globals['_CAPTURERESPONSE']._serialized_end=49
   _globals['_COMMANDHELLO']._serialized_start=51
@@ -67,28 +67,28 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_COMMANDCONFIGUREADC']._serialized_end=561
   _globals['_COMMANDREADADC']._serialized_start=563
   _globals['_COMMANDREADADC']._serialized_end=579
-  _globals['_COMMANDSWIM']._serialized_start=581
-  _globals['_COMMANDSWIM']._serialized_end=694
-  _globals['_COMMANDREBOOTBOOTLOADER']._serialized_start=696
-  _globals['_COMMANDREBOOTBOOTLOADER']._serialized_end=721
-  _globals['_COMMAND']._serialized_start=724
-  _globals['_COMMAND']._serialized_end=1107
-  _globals['_RESPONSEOK']._serialized_start=1109
-  _globals['_RESPONSEOK']._serialized_end=1121
-  _globals['_RESPONSEERROR']._serialized_start=1123
-  _globals['_RESPONSEERROR']._serialized_end=1155
-  _globals['_RESPONSEHELLO']._serialized_start=1157
-  _globals['_RESPONSEHELLO']._serialized_end=1230
-  _globals['_RESPONSETRIGGERTIMEOUT']._serialized_start=1232
-  _globals['_RESPONSETRIGGERTIMEOUT']._serialized_end=1256
-  _globals['_RESPONSEADC']._serialized_start=1258
-  _globals['_RESPONSEADC']._serialized_end=1288
-  _globals['_RESPONSEINFO']._serialized_start=1290
-  _globals['_RESPONSEINFO']._serialized_end=1323
-  _globals['_RESPONSESWDCHECK']._serialized_start=1325
-  _globals['_RESPONSESWDCHECK']._serialized_end=1360
-  _globals['_RESPONSESWIM']._serialized_start=1362
-  _globals['_RESPONSESWIM']._serialized_end=1407
-  _globals['_RESPONSE']._serialized_start=1410
-  _globals['_RESPONSE']._serialized_end=1673
+  _globals['_COMMANDSWIM']._serialized_start=582
+  _globals['_COMMANDSWIM']._serialized_end=738
+  _globals['_COMMANDREBOOTBOOTLOADER']._serialized_start=740
+  _globals['_COMMANDREBOOTBOOTLOADER']._serialized_end=765
+  _globals['_COMMAND']._serialized_start=768
+  _globals['_COMMAND']._serialized_end=1151
+  _globals['_RESPONSEOK']._serialized_start=1153
+  _globals['_RESPONSEOK']._serialized_end=1165
+  _globals['_RESPONSEERROR']._serialized_start=1167
+  _globals['_RESPONSEERROR']._serialized_end=1199
+  _globals['_RESPONSEHELLO']._serialized_start=1201
+  _globals['_RESPONSEHELLO']._serialized_end=1274
+  _globals['_RESPONSETRIGGERTIMEOUT']._serialized_start=1276
+  _globals['_RESPONSETRIGGERTIMEOUT']._serialized_end=1300
+  _globals['_RESPONSEADC']._serialized_start=1302
+  _globals['_RESPONSEADC']._serialized_end=1332
+  _globals['_RESPONSEINFO']._serialized_start=1334
+  _globals['_RESPONSEINFO']._serialized_end=1367
+  _globals['_RESPONSESWDCHECK']._serialized_start=1369
+  _globals['_RESPONSESWDCHECK']._serialized_end=1404
+  _globals['_RESPONSESWIM']._serialized_start=1406
+  _globals['_RESPONSESWIM']._serialized_end=1468
+  _globals['_RESPONSE']._serialized_start=1471
+  _globals['_RESPONSE']._serialized_end=1734
 # @@protoc_insertion_point(module_scope)
