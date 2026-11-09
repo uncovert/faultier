@@ -33,6 +33,9 @@ PB_BIND(CommandReadADC, CommandReadADC, AUTO)
 PB_BIND(CommandSWIM, CommandSWIM, AUTO)
 
 
+PB_BIND(CommandRebootBootloader, CommandRebootBootloader, AUTO)
+
+
 PB_BIND(Command, Command, AUTO)
 
 

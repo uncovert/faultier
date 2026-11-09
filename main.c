@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "pico/bootrom.h"
 #include "pico/multicore.h"
 
 #include "hardware/adc.h"
@@ -921,6 +922,17 @@ int main()
             case Command_swim_tag:
                 handle_swim(&command.cmd.swim);
                 break;
+            case Command_reboot_bootloader_tag:
+            {
+                protocol_ok();
+                // Give the reply time to leave before USB goes away.
+                absolute_time_t until = make_timeout_time_ms(100);
+                while (!time_reached(until)) {
+                    tud_task();
+                }
+                reset_usb_boot(0, 0);
+            }
+            break;
             default:
                 cls(false);
                 pprintf("Invalid command!\n");

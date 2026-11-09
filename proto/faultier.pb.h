@@ -136,6 +136,12 @@ typedef struct _CommandSWIM {
     bool hot_attach;
 } CommandSWIM;
 
+/* Answer ResponseOk, then reboot into the RP2040 USB bootloader (as if BOOTSEL
+ had been held), so new firmware can be copied over without the button. */
+typedef struct _CommandRebootBootloader {
+    char dummy_field;
+} CommandRebootBootloader;
+
 typedef struct _Command {
     pb_size_t which_cmd;
     union {
@@ -147,6 +153,7 @@ typedef struct _Command {
         CommandSWDCheck swd_check;
         CommandConfigureADC configure_adc;
         CommandSWIM swim;
+        CommandRebootBootloader reboot_bootloader;
     } cmd;
 } Command;
 
@@ -268,6 +275,7 @@ extern "C" {
 
 
 
+
 #define ResponseHello_version_ENUMTYPE FaultierVersion
 
 
@@ -287,6 +295,7 @@ extern "C" {
 #define CommandConfigureADC_init_default         {_ADCSource_MIN, 0, 0}
 #define CommandReadADC_init_default              {0}
 #define CommandSWIM_init_default                 {_SWIMFunction_MIN, 0, 0, {0, {0}}, 0}
+#define CommandRebootBootloader_init_default     {0}
 #define Command_init_default                     {0, {CommandHello_init_default}}
 #define ResponseOk_init_default                  {0}
 #define ResponseError_init_default               {""}
@@ -306,6 +315,7 @@ extern "C" {
 #define CommandConfigureADC_init_zero            {_ADCSource_MIN, 0, 0}
 #define CommandReadADC_init_zero                 {0}
 #define CommandSWIM_init_zero                    {_SWIMFunction_MIN, 0, 0, {0, {0}}, 0}
+#define CommandRebootBootloader_init_zero        {0}
 #define Command_init_zero                        {0, {CommandHello_init_zero}}
 #define ResponseOk_init_zero                     {0}
 #define ResponseError_init_zero                  {""}
@@ -344,6 +354,7 @@ extern "C" {
 #define Command_swd_check_tag                    7
 #define Command_configure_adc_tag                8
 #define Command_swim_tag                         9
+#define Command_reboot_bootloader_tag            10
 #define ResponseError_message_tag                1
 #define ResponseHello_version_tag                1
 #define ResponseHello_supports_swim_tag          2
@@ -419,6 +430,11 @@ X(a, STATIC,   SINGULAR, BOOL,     hot_attach,        5)
 #define CommandSWIM_CALLBACK NULL
 #define CommandSWIM_DEFAULT NULL
 
+#define CommandRebootBootloader_FIELDLIST(X, a) \
+
+#define CommandRebootBootloader_CALLBACK NULL
+#define CommandRebootBootloader_DEFAULT NULL
+
 #define Command_FIELDLIST(X, a) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,hello,cmd.hello),   1) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,configure_glitcher,cmd.configure_glitcher),   2) \
@@ -427,7 +443,8 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,glitch,cmd.glitch),   5) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,read_adc,cmd.read_adc),   6) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,swd_check,cmd.swd_check),   7) \
 X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,configure_adc,cmd.configure_adc),   8) \
-X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,swim,cmd.swim),   9)
+X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,swim,cmd.swim),   9) \
+X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,reboot_bootloader,cmd.reboot_bootloader),  10)
 #define Command_CALLBACK NULL
 #define Command_DEFAULT NULL
 #define Command_cmd_hello_MSGTYPE CommandHello
@@ -438,6 +455,7 @@ X(a, STATIC,   ONEOF,    MESSAGE,  (cmd,swim,cmd.swim),   9)
 #define Command_cmd_swd_check_MSGTYPE CommandSWDCheck
 #define Command_cmd_configure_adc_MSGTYPE CommandConfigureADC
 #define Command_cmd_swim_MSGTYPE CommandSWIM
+#define Command_cmd_reboot_bootloader_MSGTYPE CommandRebootBootloader
 
 #define ResponseOk_FIELDLIST(X, a) \
 
@@ -508,6 +526,7 @@ extern const pb_msgdesc_t CommandConfigureGlitcher_msg;
 extern const pb_msgdesc_t CommandConfigureADC_msg;
 extern const pb_msgdesc_t CommandReadADC_msg;
 extern const pb_msgdesc_t CommandSWIM_msg;
+extern const pb_msgdesc_t CommandRebootBootloader_msg;
 extern const pb_msgdesc_t Command_msg;
 extern const pb_msgdesc_t ResponseOk_msg;
 extern const pb_msgdesc_t ResponseError_msg;
@@ -529,6 +548,7 @@ extern const pb_msgdesc_t Response_msg;
 #define CommandConfigureADC_fields &CommandConfigureADC_msg
 #define CommandReadADC_fields &CommandReadADC_msg
 #define CommandSWIM_fields &CommandSWIM_msg
+#define CommandRebootBootloader_fields &CommandRebootBootloader_msg
 #define Command_fields &Command_msg
 #define ResponseOk_fields &ResponseOk_msg
 #define ResponseError_fields &ResponseError_msg
@@ -551,6 +571,7 @@ extern const pb_msgdesc_t Response_msg;
 #define CommandGlitch_size                       0
 #define CommandHello_size                        0
 #define CommandReadADC_size                      0
+#define CommandRebootBootloader_size             0
 #define CommandSWDCheck_size                     2
 #define CommandSWIM_size                         147
 #define Command_size                             150

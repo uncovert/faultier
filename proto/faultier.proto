@@ -117,6 +117,10 @@ message CommandSWIM {
     bool hot_attach = 5;
 }
 
+// Answer ResponseOk, then reboot into the RP2040 USB bootloader (as if BOOTSEL
+// had been held), so new firmware can be copied over without the button.
+message CommandRebootBootloader {}
+
 message Command {
     oneof cmd {
         CommandHello hello = 1;
@@ -127,6 +131,7 @@ message Command {
         CommandReadADC read_adc = 6;
         CommandSWDCheck swd_check = 7;
         CommandSWIM swim = 9;
+        CommandRebootBootloader reboot_bootloader = 10;
     }
 }
 
